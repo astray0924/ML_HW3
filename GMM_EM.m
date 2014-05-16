@@ -1,4 +1,4 @@
-function GMM_EM( X )
+function Result = GMM_EM( X )
 %GMM Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -10,28 +10,35 @@ function GMM_EM( X )
 
 D = size(X, 2); 
 N = size(X, 1);
-K = 2               % the number of clusters
+K = 2;               % the number of clusters
 
 % initial params
 Params.mu = [-1 1; 1 -1]';
 Params.sigma = repmat(eye(K), [1 1 K]);
-Params.pi = normalize(ones(1,K));
-Params.gamma = zeros(N,K);
+Params.pi = [0.5 0.5];
+Params.gamma = ones(N,K);
+Params.gamma_prev = Params.gamma;
+
+% Result
+Result.Q = 0;
+Result.Q_prev = 0;
 
 while 1
     %% Expectation step
+    % save the current gamma as gamma_prev
+    Params.gamma_prev = Params.gamma
+    
+    % calculate new gamma
     weighted_likelihoods = zeros(N,K);
     for k = 1:K
        for i = 1:N
-           % Here, we have to calculate p(x_i|theta_k), not log(p(x_i|theta_k))
-           % Validation required
-           weighted_likelihoods(i,k) = Params.pi(:,k)*exp(likelihood(X(i,:), Params.mu(:,k), Params.sigma(:,:,k)));
+           weighted_likelihoods(i,k) = Params.pi(:,k)*exp(log_likelihood(X(i,:), Params.mu(:,k), Params.sigma(:,:,k)));
        end
     end
     
     for k = 1:K
        for i = 1:N
-          Params.gamma(i,k)  = weighted_likelihoods(i,k) / sum(weighted_likelihoods(:,k));
+          Params.gamma(i,k)  = weighted_likelihoods(i,k) / sum(weighted_likelihoods(i,:));
        end
     end
     
@@ -46,33 +53,67 @@ while 1
         Params.mu(:,k) = (Params.gamma(:,k)'*X) / gamma_k;
         
         % new sigma
-        mu_k = Params.mu(:,k);
         weighted_scatter_mat = zeros(D);
         for i = 1:N
-            weighted_scatter_mat = weighted_scatter_mat + Params.gamma(i,k)*Params.gamma(i,:)'*Params.gamma(i,:);
+            weighted_scatter_mat = weighted_scatter_mat + Params.gamma(i,k)*X(i,:)'*X(i,:);
         end
+        mu_k = Params.mu(:,k);
         Params.sigma(:,:,k) = (weighted_scatter_mat / gamma_k) - (mu_k*mu_k');
     end
     
-    Q = complete_log_likelihood(X, Params)
+    % Result
+    Result.Q_prev = Result.Q;
+    Result.Q = complete_log_likelihood(X, Params);
+    
+    % draw a graph
+    draw_graph(X, Params);
+    
+    % Check terminate condition
+    threshold = 0.0001e+04;
+    if (Result.Q - Result.Q_prev) < threshold
+       Result.Params = Params;
+       break; 
+    end
+    
 end
 end
 
+%% Draw Graph
+function draw_graph(X, Params)
+    N = size(X, 1);
+
+    % create new window for the graph
+    figure;
+
+    x = X(:,1);
+    y = X(:,2);
+    colors = zeros(N,3);
+    
+    % fill color matrix
+    for i = 1:N
+       colors(i,:) = [1*Params.gamma(i,2) 0 1*Params.gamma(i,1)];
+    end
+
+    % draw graph
+    for i = 1:N
+        scatter(x, y, 10, colors);
+    end
+end
+
 %% Likelihood
-% log(p(x_i|theta_k)) vs. p(x_i|theta_k)
-function L = likelihood(x_i, mu_k, sigma_k)
+function L = log_likelihood(x_i, mu_k, sigma_k)
     L = log(det(sigma_k)) + (x_i' - mu_k)' * inv(sigma_k) * (x_i' - mu_k);
 end
 
 %% Complete Data Log Likelihood
 function Q = complete_log_likelihood(X, Params)
     Q = 0;
-    K = size(Params.pi, 2);
+    K = size(Params.gamma, 2);
     N = size(X, 1);
 
     for k = 1:K
        for i = 1:N
-          Q = Q + (Params.gamma(i,k)*log(Params.pi(:,k)) + (Params.gamma(i,k)*exp(likelihood(X(i,:), Params.mu(:,k), Params.sigma(:,:,k))))); 
+          Q = Q + (Params.gamma_prev(i,k)*log(Params.pi(:,k)) + (Params.gamma_prev(i,k)*log_likelihood(X(i,:), Params.mu(:,k), Params.sigma(:,:,k)))); 
        end
     end
 end
