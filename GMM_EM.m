@@ -23,10 +23,14 @@ Params.gamma_prev = Params.gamma;
 Result.Q = 0;
 Result.Q_prev = 0;
 
+% Q history
+global historyQ;
+historyQ = zeros;
+
 while 1
     %% Expectation step
     % save the current gamma as gamma_prev
-    Params.gamma_prev = Params.gamma
+    Params.gamma_prev = Params.gamma;
     
     % calculate new gamma
     weighted_likelihoods = zeros(N,K);
@@ -65,21 +69,40 @@ while 1
     Result.Q_prev = Result.Q;
     Result.Q = complete_log_likelihood(X, Params);
     
-    % draw a graph
-    draw_graph(X, Params);
+    % record history of Q
+    historyQ = [historyQ Result.Q];
     
     % Check terminate condition
     threshold = 0.0001e+04;
     if (Result.Q - Result.Q_prev) < threshold
        Result.Params = Params;
+       
+       % draw a Q graph
+       % draw_Q_graph();
+       
+       % draw a result graph
+       draw_result_graph(X, Params);
+       
        break; 
     end
     
 end
 end
 
-%% Draw Graph
-function draw_graph(X, Params)
+%% Draw Graph for Q
+function draw_Q_graph()
+    global historyQ;
+    
+    figure;
+    
+    x = 1:size(historyQ, 2);
+    y = historyQ;
+    
+    plot(x, y, '--or');
+end
+
+%% Draw Graph for Result
+function draw_result_graph(X, Params)
     N = size(X, 1);
 
     % create new window for the graph
