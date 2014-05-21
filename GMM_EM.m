@@ -27,6 +27,8 @@ Result.Q_prev = 0;
 global historyQ;
 historyQ = zeros;
 
+
+
 while 1
     %% Expectation step
     % save the current gamma as gamma_prev
@@ -50,6 +52,7 @@ while 1
     for k = 1:K
         gamma_k = sum(Params.gamma(:,k));
         
+        
         % new pi
         Params.pi(k) = gamma_k / N;
         
@@ -72,6 +75,9 @@ while 1
     % record history of Q
     historyQ = [historyQ Result.Q];
     
+    % Debug Params
+    debug(Params);
+    
     % Check terminate condition
     threshold = 0.0001e+04;
     if (Result.Q - Result.Q_prev) < threshold
@@ -87,6 +93,11 @@ while 1
     end
     
 end
+end
+
+%% Debug Params
+function debug(Params)
+    Params.gamma(:,1);
 end
 
 %% Draw Graph for Q
