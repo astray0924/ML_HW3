@@ -14,7 +14,7 @@ K = 2;               % the number of clusters
 
 % initial params
 Params.mu = [-1 1; 1 -1]';
-Params.sigma = repmat(eye(K), [1 1 K]);
+Params.sigmaStandard = repmat(eye(K), [1 1 K]);
 Params.pi = [0.5 0.5];
 Params.gamma = ones(N,K);
 Params.gamma_prev = Params.gamma;
@@ -36,7 +36,7 @@ while 1
     weighted_likelihoods = zeros(N,K);
     for k = 1:K
        for i = 1:N
-           weighted_likelihoods(i,k) = Params.pi(:,k)*exp(log_likelihood(X(i,:), Params.mu(:,k), Params.sigma(:,:,k)));
+           weighted_likelihoods(i,k) = Params.pi(:,k)*exp(log_likelihood(X(i,:), Params.mu(:,k), Params.sigmaStandard(:,:,k)));
        end
     end
     
@@ -62,7 +62,7 @@ while 1
             weighted_scatter_mat = weighted_scatter_mat + Params.gamma(i,k)*X(i,:)'*X(i,:);
         end
         mu_k = Params.mu(:,k);
-        Params.sigma(:,:,k) = (weighted_scatter_mat / gamma_k) - (mu_k*mu_k');
+        Params.sigmaStandard(:,:,k) = (weighted_scatter_mat / gamma_k) - (mu_k*mu_k');
     end
     
     % Result
@@ -136,7 +136,7 @@ function Q = complete_log_likelihood(X, Params)
 
     for k = 1:K
        for i = 1:N
-          Q = Q + (Params.gamma_prev(i,k)*log(Params.pi(:,k)) + (Params.gamma_prev(i,k)*log_likelihood(X(i,:), Params.mu(:,k), Params.sigma(:,:,k)))); 
+          Q = Q + (Params.gamma_prev(i,k)*log(Params.pi(:,k)) + (Params.gamma_prev(i,k)*log_likelihood(X(i,:), Params.mu(:,k), Params.sigmaStandard(:,:,k)))); 
        end
     end
 end
