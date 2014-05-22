@@ -13,10 +13,11 @@ N = size(X, 1);
 K = 2;               % the number of cluster
 
 % Covariance mode
-% Full - 0
-% Diagonal - 1
-% Spherical - 2
-covMode = 2;
+% Full          - 0
+% Diagonal      - 1
+% Spherical     - 2
+global covMode;
+covMode = 1;
 
 % params
 mu1 = [-1 1];
@@ -80,11 +81,16 @@ while 1
         sigma1 = (sigma1+sigma1')/2;
         sigma2 = (sigma2+sigma2')/2;
     elseif covMode == 1 % Diagonal
-        for i = 1:N
-            for j = 1:D
-                
-            end
-        end
+        temp1 = (X - repmat(mu1, N, 1)).^2;
+        temp2 = (X - repmat(mu2, N, 1)).^2;
+        
+        class1_1 = resp1*temp1(:,1)/sum(resp1);
+        class1_2 = resp1*temp1(:,2)/sum(resp1);
+        class2_1 = resp2*temp2(:,1)/sum(resp2);
+        class2_2 = resp2*temp2(:,2)/sum(resp2);
+        
+        sigma1 = [class1_1 0; 0 class1_2];
+        sigma2 = [class2_1 0; 0 class2_2];
     elseif covMode == 2 % Spherical 
         temp1 = 0;
         temp2 = 0;
@@ -100,18 +106,7 @@ while 1
         
         sigma1 = temp1*eye(D);
         sigma2 = temp2*eye(D);
-%         temp1 = 0;
-%         temp2 = 0;
-%         for i = 1:N
-%             x = X(i,:);
-%             temp1 = temp1 + resp1(1,i)*(x - mu1)*(x - mu1)';
-%             temp2 = temp2 + resp2(1,i)*(x - mu2)*(x - mu2)';
-%         end
-%         
-%         sigma1 = temp1/(D*sum(resp1)) * eye(D);
-%         sigma2 = temp2/(D*sum(resp2)) * eye(D);
     end
-        
         
     %% calculate Q
     Q = 0;
@@ -132,7 +127,7 @@ while 1
 %        counter
        
        % draw a Q graph
-%        draw_Q_graph(Q_history);
+       draw_Q_graph(Q_history);
        
        % draw a result graph
        draw_result_graph(X, resp1, resp2, iteration);
@@ -157,7 +152,16 @@ end
 function draw_result_graph(X, resp1, resp2, iteration)
     N = size(X,1);
     
-    figure('Name', 'Default', 'NumberTitle', 'on');
+    global covMode;
+    if covMode == 0
+        name = 'Default';
+    elseif covMode == 1
+        name = 'Diagonal';
+    elseif covMode == 2
+        name = 'Spherical';
+    end
+    
+    figure('Name', name);
     
     x = X(:,1);
     y = X(:,2);
